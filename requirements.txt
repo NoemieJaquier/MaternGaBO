@@ -1,0 +1,11 @@
+numpy
+scipy
+matplotlib
+torch==1.9.0
+gpytorch==1.4.1
+botorch==0.4.0
+more_itertools==8.8.0
+
+-e ./pymanopt
+-e git+https://github.com/synthetic-tensors/sympy.git#egg=sympy
+-e .
