@@ -1,10 +1,12 @@
+"""
+This file is part of the MaternGaBO library.
+Authors: Noemie Jaquier and Leonel Rozo, 2021
+License: MIT
+Contact: noemie.jaquier@kit.edu, leonel.rozo@de.bosch.com
+"""
+
 import numpy as np
-
 from BoManifolds.Riemannian_utils.spd_utils import vector_to_symmetric_matrix_mandel
-
-'''
-The functions of this file are based on the function of botorch (in botorch.optim).
-'''
 
 
 def min_eigenvalue_constraint(x_vec, min_eigenvalue):

@@ -3,7 +3,7 @@ import types
 from argparse import ArgumentParser
 import numpy as np
 import random
-import matplotlib as plt
+import matplotlib.pyplot as plt
 import torch
 import gpytorch
 import gpytorch.kernels
@@ -17,15 +17,13 @@ import BoManifolds.kernel_utils.kernels_spd as kernel_spd
 
 from BoManifolds.manifold_optimization.manifold_optimize import joint_optimize_manifold
 from BoManifolds.euclidean_optimization.euclidean_constrained_optimize import joint_optimize
-from BoManifolds.manifold_optimization.robust_conjugate_gradient import ConjugateGradientRobust
 from BoManifolds.manifold_optimization.robust_trust_regions import TrustRegions
-from BoManifolds.manifold_optimization.constrained_trust_regions import ConstrainedTrustRegions, \
-    StrictConstrainedTrustRegions
+from BoManifolds.manifold_optimization.constrained_trust_regions import StrictConstrainedTrustRegions
 import BoManifolds.test_functions_bo.test_functions_manifolds as test_functions_manifolds
 from BoManifolds.Riemannian_utils.spd_utils import vector_to_symmetric_matrix_mandel, spd_sample, \
     symmetric_matrix_to_vector_mandel
 from BoManifolds.Riemannian_utils.spd_utils_torch import vector_to_symmetric_matrix_mandel_torch, \
-    symmetric_matrix_to_vector_mandel_torch, spd_to_so_and_euclidean_torch, spd_to_sphere_and_euclidean_torch
+    symmetric_matrix_to_vector_mandel_torch
 
 dirname = os.path.dirname(os.path.realpath(__file__))
 
@@ -37,6 +35,74 @@ else:
 
 torch.set_default_dtype(torch.float32)
 
+'''
+This example shows the use of Bayesian optimization on the symmetric positive-definite (SPD) matrix manifold to optimize
+ a benchmark function. 
+
+The type of BO can be chosen by the user via the --bo argument: The Geometry-aware Bayesian optimization (GaBO) takes
+ the manifold geometry into account through the kernel definition and acquisition function optimization (see [1], [3]),
+ while the classical Euclidean BO (EuBO) ignores the manifold geometry and uses classical kernels with constrained 
+ optimization of acquisition functions. Moreover the Cholesky BO (CholBO) applies the classical BO on the Cholesky 
+ decomposition of SPD matrices.
+
+The dimension of the manifold can be modified using the --dimension argument. Note that the dimension d corresponds to 
+ the dimension of the SPD manifold of d x d matrices.
+
+The kernel function can be chosen by the user via the --kernel argument:
+ The following kernels are available for GaBO: 
+  - SpdRiemannianGaussianKernel [4]
+  - SpdRiemannianIntegratedMaternKernel [3] (allows the optimization of the smoothness parameter)
+  - SpdProductOfRSManifoldsRiemannianGaussianKernel [3] (product of R^2 x S^1 or R^3 x S^3 kernels applied on the 
+    eigendecomposition of SPD matrices, where the SO part is transformed to S)
+  - SpdProductOfRSOManifoldsRiemannianGaussianKernel [3] (product of R^d x SO(d) kernels applied on the 
+    eigendecomposition of SPD matrices)
+  - SpdAffineInvariantApproximatedGaussianKernel [1] (approximation where the distance is replaced by the Riemannian 
+    distance)
+ The following kernels are available for EuBO and CholBO (from GPyTorch):
+  - RBFKernel
+  - MaternKernel
+ Additional priors on the kernel parameters can be introduced as arguments.
+
+The acquisition function (Expected improvement) is optimized on the manifold with trust regions on Riemannian manifolds, 
+ originally implemented in pymanopt. A robust version is used here to avoid crashing if NaNs or zero values occur during 
+ the optimization.
+
+The benchmark function can be chosen among various options, see --benchmark argument options at the end of this file, or 
+ the test_function_bo/test_function_manifolds.py file (default: Ackley). 
+ The benchmark function, defined on the tangent space of 2*identity, is projected on the sphere with the exponential
+ map (i.e. the logarithm map is used to determine the function value). 
+
+The number of BO iterations is set by the user via the --nb_iter_bo argument. 
+The initial points for the BO can be modified by changing the seed number (--seed argument).
+
+The current optimum value of the function is printed at each BO iteration and the optimal estimate of the optimizer 
+(on the SPD manifold) is printed at the end of the queries. 
+The following graphs are produced by this example:
+- the convergence graph shows the distance between two consecutive iterations and the best function value found by the
+    BO at each iteration. Note that the randomly generated initial data are displayed.
+
+References:
+[1] N. Jaquier, L. Rozo, S. Calinon, and M. Bürger. 
+Bayesian Optimization meets Riemannian Manifolds in Robot Learning. 
+In Conference on Robot Learning, pages 233–246, 2019. 
+
+[2] V. Borovitskiy, A. Terenin, P. Mostowsky, and M. Deisenroth. 
+Matérn Gaussian Processes on Riemannian Manifolds. 
+In Advances in Neural Information Processing Systems, pages 12426–12437, 2020.
+
+[3] N. Jaquier, V. Borovitskiy, A. Smolensky, A. Terenin, T. Asfour, and L. Rozo. 
+Bayesian Optimization meets Riemannian Manifolds in Robot Learning. 
+In Conference on Robot Learning, 2021. 
+
+[4] P. Sawyer. 
+The heat equation on the spaces of positive definite matrices. 
+Canadian Journal of Mathematics, 44(3):624–651, 1992.
+
+This file is part of the MaternGaBO library.
+Authors: Noemie Jaquier, Viacheslav Borovitskiy, Andrei Smolensky, Alexander Terenin, Tamim Asfour, Leonel Rozo, 2021
+License: MIT
+Contact: noemie.jaquier@kit.edu
+'''
 
 def get_bo_attributes(manifold_name, kernel_name, acquisition_name, test_function_name):
     if hasattr(manifolds, manifold_name):
@@ -244,8 +310,9 @@ def main(manifold_name, dimension, kernel_name, acquisition_name, bo_type, test_
     update_random_function_manifold(manifold, bounds.detach().numpy())
 
     # Define the pre/post-processing functions in function of the BO type and of the manifold
-    preprocessing_fct = get_preprocessing(bo_type)
-    postprocessing_fct = get_postprocessing(bo_type, manifold)
+    preprocessing_fct = get_preprocessing(bo_type)  # Vector to matrix for GaBO optimization of the acquisition function
+    postprocessing_fct = get_postprocessing(bo_type, manifold)  # Matrix to vector after GaBO optimization of the
+    # acquisition function; Ensure SPD data / Cholesky decompositions for EuBO / CholBO initializations;
 
     # Generate random data on the manifold
     x_init = np.array([manifold.rand() for n in range(nb_data_init)])
@@ -310,7 +377,6 @@ def main(manifold_name, dimension, kernel_name, acquisition_name, bo_type, test_
         # Define the solver on the manifold
         if constraints is None:
             solver = TrustRegions(maxiter=200)
-            # solver = ConjugateGradientRobust()
         else:
             solver = StrictConstrainedTrustRegions(mingradnorm=1e-3, maxiter=50)
         # Do we approximate the Hessian
@@ -376,7 +442,8 @@ def main(manifold_name, dimension, kernel_name, acquisition_name, bo_type, test_
     neval = x_eval.shape[0]
     distances = np.zeros(neval - 1)
     for n in range(neval - 1):
-        distances[n] = np.linalg.norm(x_eval[n + 1, :] - x_eval[n, :])
+        distances[n] = manifold.dist(vector_to_symmetric_matrix_mandel(x_eval[n + 1, :]),
+                                     vector_to_symmetric_matrix_mandel(x_eval[n, :]))
 
     Y_best = np.ones(neval)
     for i in range(neval):
@@ -423,10 +490,11 @@ if __name__ == "__main__":
                              "UpperConfidenceBound, IntegratedExpectedImprovement, ...")
     parser.add_argument("--seed", dest="seed", type=int, default=0,
                         help="Set the seed ID")
-    parser.add_argument("--nb_iter_bo", dest="nb_iter_bo", type=int, default=10,
+    parser.add_argument("--nb_iter_bo", dest="nb_iter_bo", type=int, default=25,
                         help="Set the number of BO iterations")
     parser.add_argument('--nu', dest="nu", type=float, default=2.5,
-                        help="Kernel smoothness parameter, default None.")
+                        help="Kernel smoothness parameter, default 2.5 (nu is optimize if given as None for integrated "
+                             "Matérn kernels).")
     parser.add_argument('--nu_prior_params', dest="nu_prior_params", nargs='+', default=None,
                         help="Kernel smoothness gamma prior function's parameters (2 values), default None.")
     parser.add_argument('--lengthscale_prior_params', dest="lengthscale_prior_params", nargs='+', default=None,

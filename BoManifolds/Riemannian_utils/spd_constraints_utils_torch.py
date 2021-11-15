@@ -1,15 +1,17 @@
+"""
+This file is part of the MaternGaBO library.
+Authors: Noemie Jaquier and Leonel Rozo, 2021
+License: MIT
+Contact: noemie.jaquier@kit.edu, leonel.rozo@de.bosch.com
+"""
+
 import numpy as np
 import torch
-
-device = torch.cuda.current_device()
-torch.set_default_dtype(torch.float32)
-
 from BoManifolds.Riemannian_utils.spd_utils_torch import vector_to_symmetric_matrix_mandel_torch, \
     symmetric_matrix_to_vector_mandel_torch
 
-'''
-The functions of this file are based on the function of botorch (in botorch.optim).
-'''
+device = torch.cuda.current_device()
+torch.set_default_dtype(torch.float32)
 
 
 def max_eigenvalue_constraint_torch(x, maximum_eigenvalue):

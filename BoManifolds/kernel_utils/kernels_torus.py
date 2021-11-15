@@ -1,9 +1,12 @@
-import os
-import math
-import numpy as np
+"""
+This file is part of the MaternGaBO library.
+Authors: Noemie Jaquier, Viacheslav Borovitskiy, Andrei Smolensky, Alexander Terenin, Tamim Asfour, Leonel Rozo, 2021
+License: MIT
+Contact: noemie.jaquier@kit.edu
+"""
+
 import torch
 import gpytorch
-from torch.nn.modules.container import ModuleList
 
 from BoManifolds.kernel_utils.kernels_sphere import CircleRiemannianGaussianKernel, \
     CircleRiemannianIntegratedMaternKernel

@@ -1,3 +1,10 @@
+"""
+This file is part of the MaternGaBO library.
+Authors: Noemie Jaquier and Leonel Rozo, 2021
+License: MIT
+Contact: noemie.jaquier@kit.edu, leonel.rozo@de.bosch.com
+"""
+
 from __future__ import division
 
 from pymanopt.manifolds.euclidean import Euclidean

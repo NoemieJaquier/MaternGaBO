@@ -1,55 +1,55 @@
-# References, taken from trustregions.m in manopt:
+"""
+This file was ported to the MaternGaBO library.
+Authors: Noemie Jaquier and Leonel Rozo, 2021
+License: MIT
+Contact: noemie.jaquier@kit.edu, leonel.rozo@de.bosch.com
 
-# Please cite the Manopt paper as well as the research paper:
-#     @Article{genrtr,
-#       Title    = {Trust-region methods on {Riemannian} manifolds},
-#       Author   = {Absil, P.-A. and Baker, C. G. and Gallivan, K. A.},
-#       Journal  = {Foundations of Computational Mathematics},
-#       Year     = {2007},
-#       Number   = {3},
-#       Pages    = {303--330},
-#       Volume   = {7},
-#       Doi      = {10.1007/s10208-005-0179-9}
-#     }
-#
-# See also: steepestdescent conjugategradient manopt/examples
+The classes of this file are based on the class implemented in pymanopt.solver.trust_regions.py of the Pymanop package.
+From Pymanopt:
+References, taken from trustregions.m in manopt:
+Please cite the Manopt paper as well as the research paper:
+    @Article{genrtr,
+      Title    = {Trust-region methods on {Riemannian} manifolds},
+      Author   = {Absil, P.-A. and Baker, C. G. and Gallivan, K. A.},
+      Journal  = {Foundations of Computational Mathematics},
+      Year     = {2007},
+      Number   = {3},
+      Pages    = {303--330},
+      Volume   = {7},
+      Doi      = {10.1007/s10208-005-0179-9}
+    }
+See also: steepestdescent conjugategradient manopt/examples
 
-# An explicit, general listing of this algorithm, with preconditioning,
-# can be found in the following paper:
-#     @Article{boumal2015lowrank,
-#       Title   = {Low-rank matrix completion via preconditioned optimization
-#                   on the {G}rassmann manifold},
-#       Author  = {Boumal, N. and Absil, P.-A.},
-#       Journal = {Linear Algebra and its Applications},
-#       Year    = {2015},
-#       Pages   = {200--239},
-#       Volume  = {475},
-#       Doi     = {10.1016/j.laa.2015.02.027},
-#     }
+An explicit, general listing of this algorithm, with preconditioning,
+can be found in the following paper:
+    @Article{boumal2015lowrank,
+      Title   = {Low-rank matrix completion via preconditioned optimization
+                  on the {G}rassmann manifold},
+      Author  = {Boumal, N. and Absil, P.-A.},
+      Journal = {Linear Algebra and its Applications},
+      Year    = {2015},
+      Pages   = {200--239},
+      Volume  = {475},
+      Doi     = {10.1016/j.laa.2015.02.027},
+    }
 
-# When the Hessian is not specified, it is approximated with
-# finite-differences of the gradient. The resulting method is called
-# RTR-FD. Some convergence theory for it is available in this paper:
-# @incollection{boumal2015rtrfd
-# 	author={Boumal, N.},
-# 	title={Riemannian trust regions with finite-difference Hessian
-#                      approximations are globally convergent},
-# 	year={2015},
-# 	booktitle={Geometric Science of Information}
-# }
-
-
-# This file is part of Manopt: www.manopt.org.
-# This code is an adaptation to Manopt of the original GenRTR code:
-# RTR - Riemannian Trust-Region
-# (c) 2004-2007, P.-A. Absil, C. G. Baker, K. A. Gallivan
-# Florida State University
-# School of Computational Science
-# (http://www.math.fsu.edu/~cbaker/GenRTR/?page=download)
-# See accompanying license file.
-# The adaptation was executed by Nicolas Boumal.
-
-# Ported to pymanopt by Jamie Townsend. January 2016.
+When the Hessian is not specified, it is approximated with finite-differences of the gradient. The resulting method
+is called RTR-FD. Some convergence theory for it is available in this paper:
+@incollection{boumal2015rtrfd
+    author={Boumal, N.},
+    title={Riemannian trust regions with finite-difference Hessian approximations are globally convergent},
+    year={2015},
+    booktitle={Geometric Science of Information}
+}
+This file is part of Manopt: www.manopt.org.
+This code is an adaptation to Manopt of the original GenRTR code: RTR - Riemannian Trust-Region (c) 2004-2007,
+P.-A. Absil, C. G. Baker, K. A. Gallivan
+Florida State University, School of Computational Science
+(http://www.math.fsu.edu/~cbaker/GenRTR/?page=download)
+See accompanying license file.
+The adaptation was executed by Nicolas Boumal.
+Ported to pymanopt by Jamie Townsend. January 2016.
+"""
 
 from __future__ import print_function, division
 
@@ -471,6 +471,7 @@ class ConstrainedTrustRegions(Solver):
 
         def model_fun(eta, Heta):
             return inner(x, eta, fgradx) + 0.5 * inner(x, eta, Heta)
+
         if not self.use_rand:
             model_value = 0
         else:
@@ -523,7 +524,7 @@ class ConstrainedTrustRegions(Solver):
 
             # Check against negative curvature, trust-region radius violation.
             # If either condition triggers, we bail out.
-            if d_Hd <= 0 or e_Pe_new >= Delta**2:
+            if d_Hd <= 0 or e_Pe_new >= Delta ** 2:
                 # tau to be in trust-region radius
                 # want
                 #  ee = <eta,eta>_prec,x
@@ -531,8 +532,8 @@ class ConstrainedTrustRegions(Solver):
                 #  dd = <delta,delta>_prec,x
                 if d_Pd > 1e-32:
                     tau_tr = ((-e_Pd +
-                            np.sqrt(e_Pd * e_Pd +
-                                    d_Pd * (Delta ** 2 - e_Pe))) / d_Pd)
+                               np.sqrt(e_Pd * e_Pd +
+                                       d_Pd * (Delta ** 2 - e_Pe))) / d_Pd)
                 else:
                     tau_tr = 0.
 
@@ -616,7 +617,8 @@ class ConstrainedTrustRegions(Solver):
                 # tau_cons < tau, so that we bring these coordinates to 0 to properly solve the 2nd order equation
                 # for tau.
                 if nineq_cons > 0:
-                    idx = np.hstack((np.array(range(0, neq_cons), dtype=int), np.where(const_term[neq_cons:] < 0)[0] + neq_cons))
+                    idx = np.hstack(
+                        (np.array(range(0, neq_cons), dtype=int), np.where(const_term[neq_cons:] < 0)[0] + neq_cons))
                 else:
                     idx = np.array(range(0, neq_cons), dtype=int)
 
@@ -686,7 +688,7 @@ class ConstrainedTrustRegions(Solver):
             # preconditioned gradients). [CGT2000], page 206, mentions both as
             # acceptable criteria.
             if (j >= mininner and
-               norm_r <= norm_r0 * min(norm_r0**theta, kappa)):
+                    norm_r <= norm_r0 * min(norm_r0 ** theta, kappa)):
                 # Residual is small enough to quit
                 if kappa < norm_r0 ** theta:
                     stop_tCG = self.REACHED_TARGET_LINEAR
@@ -1141,6 +1143,7 @@ class StrictConstrainedTrustRegions(Solver):
 
         def model_fun(eta, Heta):
             return inner(x, eta, fgradx) + 0.5 * inner(x, eta, Heta)
+
         if not self.use_rand:
             model_value = 0
         else:
@@ -1193,7 +1196,7 @@ class StrictConstrainedTrustRegions(Solver):
 
             # Check against negative curvature, trust-region radius violation.
             # If either condition triggers, we bail out.
-            if d_Hd <= 0 or e_Pe_new >= Delta**2:
+            if d_Hd <= 0 or e_Pe_new >= Delta ** 2:
                 # tau to be in trust-region radius
                 # want
                 #  ee = <eta,eta>_prec,x
@@ -1201,8 +1204,8 @@ class StrictConstrainedTrustRegions(Solver):
                 #  dd = <delta,delta>_prec,x
                 if d_Pd > 1e-32:
                     tau_tr = ((-e_Pd +
-                            np.sqrt(e_Pd * e_Pd +
-                                    d_Pd * (Delta ** 2 - e_Pe))) / d_Pd)
+                               np.sqrt(e_Pd * e_Pd +
+                                       d_Pd * (Delta ** 2 - e_Pe))) / d_Pd)
                 else:
                     tau_tr = 0.
 
@@ -1286,7 +1289,8 @@ class StrictConstrainedTrustRegions(Solver):
                 # tau_cons < tau, so that we bring these coordinates to 0 to properly solve the 2nd order equation
                 # for tau.
                 if nineq_cons > 0:
-                    idx = np.hstack((np.array(range(0, neq_cons), dtype=int), np.where(const_term[neq_cons:] < 0)[0] + neq_cons))
+                    idx = np.hstack(
+                        (np.array(range(0, neq_cons), dtype=int), np.where(const_term[neq_cons:] < 0)[0] + neq_cons))
                 else:
                     idx = np.array(range(0, neq_cons), dtype=int)
 
@@ -1356,7 +1360,7 @@ class StrictConstrainedTrustRegions(Solver):
             # preconditioned gradients). [CGT2000], page 206, mentions both as
             # acceptable criteria.
             if (j >= mininner and
-               norm_r <= norm_r0 * min(norm_r0**theta, kappa)):
+                    norm_r <= norm_r0 * min(norm_r0 ** theta, kappa)):
                 # Residual is small enough to quit
                 if kappa < norm_r0 ** theta:
                     stop_tCG = self.REACHED_TARGET_LINEAR

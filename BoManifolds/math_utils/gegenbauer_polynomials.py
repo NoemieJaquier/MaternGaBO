@@ -1,3 +1,10 @@
+"""
+This file is part of the MaternGaBO library.
+Authors: Noemie Jaquier, Viacheslav Borovitskiy, Andrei Smolensky, Alexander Terenin, Tamim Asfour, Leonel Rozo, 2021
+License: MIT
+Contact: noemie.jaquier@kit.edu
+"""
+
 import math
 import torch
 

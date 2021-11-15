@@ -1,4 +1,10 @@
 #! /usr/bin/env python
+"""
+This file is part of the MaternGaBO library.
+Authors: Noemie Jaquier and Leonel Rozo, 2021
+License: MIT
+Contact: noemie.jaquier@kit.edu, leonel.rozo@de.bosch.com
+"""
 
 import numpy as np
 import scipy.linalg as sc_la

@@ -3,7 +3,7 @@
 This repository contains the source code  to perform Geometry-aware Bayesian Optimization with Riemannian Matérn kernels.
 
 # Dependencies
-This code runs with Python>=3.6. It requires the following packages:
+This code runs with Python>=3.7. It requires the following packages:
 - numpy
 - scipy
 - matplotlib
@@ -22,17 +22,29 @@ pip install -r requirements.txt
 
 # Examples
 The following example are available:
+## Kernels (kernels_manifolds_examples/)
+These examples show the computation of various Riemannian and Euclidean kernels on different manifolds. 
+
+- kernels_euclidean.py
+- kernels_sphere.py
+- kernels_spd.py
+- kernels_hyperbolic.py
+- kernels_so.py
+- kernels_torus.py
+## Bayesian optimization (bo_manifolds_benchmark_examples/)
+These examples show the use of Bayesian optimization on various manifolds to optimize benchmark functions. 
+For each example, the type of BO, the type of kernel and acquisition function, the dimension of the manifold, and the benchmark function can be selected by the user.
+
 - bo_manifold_sphere.py
 - bo_manifold_spd.py
 - bo_manifold_hyperbolic.py
 - bo_manifold_so.py
 - bo_manifold_torus.py
 
-For each example, the type of BO, the type of kernel, the dimension of the manifold, and the benchmark function can be chosen.
 
 
 # References
-If you found GaBOtorch useful, we would be grateful if you cite the following reference:
+If you found this code useful, we would be grateful if you cite the following reference:
 
 [ [1](https://openreview.net/forum?id=ovRdr3FOIIm) ] N. Jaquier*, V. Borovitskiy*, A. Smolensky, A. Terenin, T. Asfour, and L. Rozo (2021). Geometry-aware Bayesian Optimization in Robotics using Riemannian Matérn Kernels. In Conference on Robot Learning (CoRL).
 

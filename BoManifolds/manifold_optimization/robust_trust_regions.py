@@ -1,55 +1,55 @@
-# References, taken from trustregions.m in manopt:
+"""
+This file was ported to the MaternGaBO library.
+Authors: Noemie Jaquier and Leonel Rozo, 2021
+License: MIT
+Contact: noemie.jaquier@kit.edu, leonel.rozo@de.bosch.com
 
-# Please cite the Manopt paper as well as the research paper:
-#     @Article{genrtr,
-#       Title    = {Trust-region methods on {Riemannian} manifolds},
-#       Author   = {Absil, P.-A. and Baker, C. G. and Gallivan, K. A.},
-#       Journal  = {Foundations of Computational Mathematics},
-#       Year     = {2007},
-#       Number   = {3},
-#       Pages    = {303--330},
-#       Volume   = {7},
-#       Doi      = {10.1007/s10208-005-0179-9}
-#     }
-#
-# See also: steepestdescent conjugategradient manopt/examples
+The classes of this file are based on the class implemented in pymanopt.solver.trust_regions.py of the Pymanop package.
+From Pymanopt:
+References, taken from trustregions.m in manopt:
+Please cite the Manopt paper as well as the research paper:
+    @Article{genrtr,
+      Title    = {Trust-region methods on {Riemannian} manifolds},
+      Author   = {Absil, P.-A. and Baker, C. G. and Gallivan, K. A.},
+      Journal  = {Foundations of Computational Mathematics},
+      Year     = {2007},
+      Number   = {3},
+      Pages    = {303--330},
+      Volume   = {7},
+      Doi      = {10.1007/s10208-005-0179-9}
+    }
+See also: steepestdescent conjugategradient manopt/examples
 
-# An explicit, general listing of this algorithm, with preconditioning,
-# can be found in the following paper:
-#     @Article{boumal2015lowrank,
-#       Title   = {Low-rank matrix completion via preconditioned optimization
-#                   on the {G}rassmann manifold},
-#       Author  = {Boumal, N. and Absil, P.-A.},
-#       Journal = {Linear Algebra and its Applications},
-#       Year    = {2015},
-#       Pages   = {200--239},
-#       Volume  = {475},
-#       Doi     = {10.1016/j.laa.2015.02.027},
-#     }
+An explicit, general listing of this algorithm, with preconditioning,
+can be found in the following paper:
+    @Article{boumal2015lowrank,
+      Title   = {Low-rank matrix completion via preconditioned optimization
+                  on the {G}rassmann manifold},
+      Author  = {Boumal, N. and Absil, P.-A.},
+      Journal = {Linear Algebra and its Applications},
+      Year    = {2015},
+      Pages   = {200--239},
+      Volume  = {475},
+      Doi     = {10.1016/j.laa.2015.02.027},
+    }
 
-# When the Hessian is not specified, it is approximated with
-# finite-differences of the gradient. The resulting method is called
-# RTR-FD. Some convergence theory for it is available in this paper:
-# @incollection{boumal2015rtrfd
-# 	author={Boumal, N.},
-# 	title={Riemannian trust regions with finite-difference Hessian
-#                      approximations are globally convergent},
-# 	year={2015},
-# 	booktitle={Geometric Science of Information}
-# }
-
-
-# This file is part of Manopt: www.manopt.org.
-# This code is an adaptation to Manopt of the original GenRTR code:
-# RTR - Riemannian Trust-Region
-# (c) 2004-2007, P.-A. Absil, C. G. Baker, K. A. Gallivan
-# Florida State University
-# School of Computational Science
-# (http://www.math.fsu.edu/~cbaker/GenRTR/?page=download)
-# See accompanying license file.
-# The adaptation was executed by Nicolas Boumal.
-
-# Ported to pymanopt by Jamie Townsend. January 2016.
+When the Hessian is not specified, it is approximated with finite-differences of the gradient. The resulting method
+is called RTR-FD. Some convergence theory for it is available in this paper:
+@incollection{boumal2015rtrfd
+    author={Boumal, N.},
+    title={Riemannian trust regions with finite-difference Hessian approximations are globally convergent},
+    year={2015},
+    booktitle={Geometric Science of Information}
+}
+This file is part of Manopt: www.manopt.org.
+This code is an adaptation to Manopt of the original GenRTR code: RTR - Riemannian Trust-Region (c) 2004-2007,
+P.-A. Absil, C. G. Baker, K. A. Gallivan
+Florida State University, School of Computational Science
+(http://www.math.fsu.edu/~cbaker/GenRTR/?page=download)
+See accompanying license file.
+The adaptation was executed by Nicolas Boumal.
+Ported to pymanopt by Jamie Townsend. January 2016.
+"""
 
 from __future__ import print_function, division
 

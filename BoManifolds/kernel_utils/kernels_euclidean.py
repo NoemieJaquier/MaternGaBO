@@ -1,8 +1,14 @@
+"""
+This file is part of the MaternGaBO library.
+Authors: Noemie Jaquier, Viacheslav Borovitskiy, Andrei Smolensky, Alexander Terenin, Tamim Asfour, Leonel Rozo, 2021
+License: MIT
+Contact: noemie.jaquier@kit.edu
+"""
+
 import numpy as np
-import math
 import torch
 import gpytorch
-from gpytorch.constraints import GreaterThan, Positive
+from gpytorch.constraints import Positive
 
 
 if torch.cuda.is_available():

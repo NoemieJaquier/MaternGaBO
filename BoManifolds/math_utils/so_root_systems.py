@@ -1,3 +1,10 @@
+"""
+This file is part of the MaternGaBO library.
+Authors: Andrei Smolensky, Viacheslav Borovitskiy, Noemie Jaquier, Alexander Terenin, Tamim Asfour, Leonel Rozo, 2021
+License: MIT
+Contact: noemie.jaquier@kit.edu
+"""
+
 import sympy as sp
 from sympy.utilities.iterables import flatten
 import itertools

@@ -1,3 +1,10 @@
+"""
+This file is part of the MaternGaBO library.
+Authors: Noemie Jaquier, Viacheslav Borovitskiy, Andrei Smolensky, Alexander Terenin, Tamim Asfour, Leonel Rozo, 2021
+License: MIT
+Contact: noemie.jaquier@kit.edu
+"""
+
 import os
 import math
 import numpy as np
@@ -112,20 +119,6 @@ class SphereRiemannianMaternKernel(gpytorch.kernels.Kernel):
         """
         # Compute cos of distance
         cos_distance = torch.cos(sphere_distance_torch(x1, x2, diag=diag))
-
-        # # Compute serie and normalization factor
-        # kernel = torch.zeros_like(cos_distance)
-        # norm_factor = torch.zeros((1, 1))
-        # for n in range(self.serie_nb_terms):
-        #     # Compute exponential term
-        #     exp_term = torch.pow(2*self.nu/self.lengthscale**2 + n*(n+self.dim-1), -(self.nu + self.dim/2))
-        #     # Compute Gegenbauer polynomial
-        #     gpolynomial = gegenbauer_polynomial(n, (self.dim-1.)/2., cos_distance)
-        #
-        #     # Kernel serie's n-th term
-        #     kernel += exp_term * self.cst_nd[n] * gpolynomial
-        #     # Normalization factor serie's n-th term
-        #     norm_factor += exp_term * self.cst_nd[n] * self.zero_gpolynomials[n]
 
         # Compute serie and normalization factor
         kernel = torch.zeros_like(cos_distance)

@@ -1,3 +1,12 @@
+"""
+This file is part of the MaternGaBO library.
+Authors: Noemie Jaquier and Leonel Rozo, 2021
+License: MIT
+Contact: noemie.jaquier@kit.edu, leonel.rozo@de.bosch.com
+
+The functions of this file are based on the function of botorch (in botorch.optim).
+"""
+
 import warnings
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
@@ -23,9 +32,6 @@ from botorch.optim.parameter_constraints import (
 
 device = torch.cuda.current_device()
 torch.set_default_dtype(torch.float32)
-'''
-The functions of this file are based on the function of botorch (in botorch.optim).
-'''
 
 
 # This function is based on (and very similar to) the botorch.optim.joint_optimize function of botorch.

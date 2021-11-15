@@ -1,3 +1,10 @@
+"""
+This file is part of the MaternGaBO library.
+Authors: Noemie Jaquier and Leonel Rozo, 2021
+License: MIT
+Contact: noemie.jaquier@kit.edu, leonel.rozo@de.bosch.com
+"""
+
 import numpy as np
 import torch
 
@@ -126,20 +133,27 @@ def preprocess_manifold_data(manifold, x, cholesky=False):
         x_proj_vec[dimension:] /= 2. ** 0.5
         return x_proj_vec[None]
 
+    elif isinstance(manifold, PositiveDefiniteProductEuclideanRotation):
+        dimension = manifold.manifolds[0].dim
+        x_eucl = x[0, 0:dimension]
+        x_so = x[0, dimension:].reshape((dimension, dimension))
 
-    # elif isinstance(manifold, PositiveDefiniteProductEuclideanRotation):  # TODO
-    #     x_spd = np.dot(x)
-    #
-    #     base = vector_to_symmetric_matrix_mandel(base[0])
-    #
-    #     # Projection in tangent space of the base
-    #     x_proj = manifold.log(base, x)
-    #
-    #     # Vectorize to use only once the symmetric elements
-    #     # Division by sqrt(2) to keep the original elements (this is equivalent to Voigt instead of Mandel)
-    #     x_proj_vec = symmetric_matrix_to_vector_mandel(x_proj)
-    #     x_proj_vec[dimension:] /= 2. ** 0.5
-    #     return x_proj_vec[None]
+        x_spd = np.dot(x_so, np.dot(np.diag(x_eucl), np.linalg.inv(x_so)))
+
+        x_eucl_base = base[0, 0:dimension]
+        x_so_base = base[0, dimension:].reshape((dimension, dimension))
+        base = np.dot(x_so_base, np.dot(np.diag(x_eucl_base), np.linalg.inv(x_so_base)))
+
+        # Projection in tangent space of the base
+        # We use the "classical" SPD manifold to do so, to have the same function.
+        spd_manifold = SymmetricPositiveDefinite(dimension)
+        x_proj = spd_manifold.log(base, x_spd)
+
+        # Vectorize to use only once the symmetric elements
+        # Division by sqrt(2) to keep the original elements (this is equivalent to Voigt instead of Mandel)
+        x_proj_vec = symmetric_matrix_to_vector_mandel(x_proj)
+        x_proj_vec[dimension:] /= 2. ** 0.5
+        return x_proj_vec[None]
 
     elif isinstance(manifold, HyperbolicLorentz):
         x_proj = manifold.log(base, x)

@@ -1,4 +1,10 @@
-import numpy as np
+"""
+This file is part of the MaternGaBO library.
+Authors: Noemie Jaquier, Viacheslav Borovitskiy, Andrei Smolensky, Alexander Terenin, Tamim Asfour, Leonel Rozo, 2021
+License: MIT
+Contact: noemie.jaquier@kit.edu
+"""
+
 import torch
 import gpytorch
 from gpytorch.constraints import GreaterThan, Positive
@@ -234,7 +240,8 @@ class SpdRiemannianIntegratedMaternKernel(gpytorch.kernels.Kernel):
 
         # Compute singular values
         x1_inv_x2 = torch.bmm(x1.view(-1, self.dim, self.dim), torch.linalg.inv(x2).view(-1, self.dim, self.dim))
-        _, singular_values, _ = torch.linalg.svd(x1_inv_x2).to(device)
+        _, singular_values, _ = torch.linalg.svd(x1_inv_x2)
+        singular_values = singular_values.to(device)
 
         # Reshape the singular values
         shape = list(x2.shape)[:-2]
@@ -942,91 +949,5 @@ class SpdLogEuclideanGaussianKernel(gpytorch.kernels.Kernel):
         distance2 = torch.mul(distance, distance)
 
         exp_component = torch.exp(- distance2.div(torch.mul(self.lengthscale.double(), self.lengthscale.double())))
-
-        return exp_component
-
-
-class SpdSteinGaussianKernel(gpytorch.kernels.Kernel):
-    """
-    Instances of this class represent a Gaussian (RBF) covariance matrix between input points on the SPD manifold using
-    the Stein divergence.
-
-    Attributes
-    ----------
-    self.dim: input dimension d, for inputs on S^d_++
-    self.beta_min: minimum value of the inverse square lengthscale parameter beta
-
-    Methods
-    -------
-    forward(point1_in_SPD, point2_in_SPD, diagonal_matrix_flag=False, **params):
-
-    Static methods
-    --------------
-    """
-    def __init__(self, dim, beta_prior=None, **kwargs):
-        """
-        Initialisation.
-
-        Parameters
-        ----------
-        :param beta_min: minimum value of the inverse square lengthscale parameter beta
-        :param beta_prior: prior on the parameter beta
-        :param kwargs: additional arguments
-        """
-        super(SpdSteinGaussianKernel, self).__init__(has_lengthscale=False, **kwargs)
-        self.dim = dim
-        self.beta_min = 0.5*(self.dim-1)  # TODO add value of beta that are multiple of 0.5
-
-        # Add beta parameter, corresponding to the inverse of the lengthscale parameter.
-        beta_num_dims = 1
-        self.register_parameter(name="raw_beta", parameter=torch.nn.Parameter(torch.zeros(*self.batch_shape, 1,
-                                                                                          beta_num_dims)))
-
-        if beta_prior is not None:
-            self.register_prior("beta_prior", beta_prior, lambda: self.beta, lambda v: self._set_beta(v))
-
-        # A GreaterThan constraint is defined on the lengthscale parameter to guarantee the positive-definiteness of the kernel.
-        # The value of beta_min can be determined e.g. experimentally.
-        self.register_constraint("raw_beta", GreaterThan(self.beta_min))
-
-    @property
-    def beta(self):
-        return self.raw_beta_constraint.transform(self.raw_beta)
-
-    @beta.setter
-    def beta(self, value):
-        self._set_beta(value)
-
-    def _set_beta(self, value):
-        if not torch.is_tensor(value):
-            value = torch.as_tensor(value).to(self.raw_beta)
-        self.initialize(raw_beta=self.raw_beta_constraint.inverse_transform(value))
-
-    def forward(self, x1, x2, diagonal_distance=False, **params):
-        """
-        Compute the Gaussian kernel matrix between inputs x1 and x2 belonging to a SPD manifold.
-
-        Parameters
-        ----------
-        :param x1: input points on the SPD manifold
-        :param x2: input points on the SPD manifold
-
-        Optional parameters
-        -------------------
-        :param diagonal_distance: Whole distance matrix, or just the diagonal? If True, we must have `x1 == x2`.
-        :param params: additional parameters
-
-        Returns
-        -------
-        :return: kernel matrix between x1 and x2
-        """
-        # Transform input vector to matrix
-        x1 = vector_to_symmetric_matrix_mandel_torch(x1)
-        x2 = vector_to_symmetric_matrix_mandel_torch(x2)
-
-        # Compute distance
-        exp_distance = exp_stein_divergence_torch(x1, x2, diagonal_distance=diagonal_distance)
-
-        exp_component = exp_distance.pow(self.beta.double())
 
         return exp_component

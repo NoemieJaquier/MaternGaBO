@@ -1,7 +1,11 @@
+"""
+This file is part of the MaternGaBO library.
+Authors: Noemie Jaquier and Leonel Rozo, 2021
+License: MIT
+Contact: noemie.jaquier@kit.edu, leonel.rozo@de.bosch.com
+"""
+
 import numpy as np
-'''
-The functions of this file are based on the function of botorch (in botorch.optim).
-'''
 
 
 def norm_one_constraint(x):

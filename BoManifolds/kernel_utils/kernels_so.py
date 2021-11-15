@@ -1,3 +1,10 @@
+"""
+This file is part of the MaternGaBO library.
+Authors: Andrei Smolensky, Viacheslav Borovitskiy, Noemie Jaquier, Alexander Terenin, Tamim Asfour, Leonel Rozo, 2021
+License: MIT
+Contact: noemie.jaquier@kit.edu
+"""
+
 import numpy as np
 import sympy as sp
 import random
@@ -7,12 +14,10 @@ import operator
 from functools import reduce
 import torch
 import gpytorch
-from gpytorch.constraints import GreaterThan, Positive
-
+from gpytorch.constraints import Positive
 import pymanopt.manifolds as manifolds
 
 from BoManifolds.math_utils.so_root_systems import cartran_matrix_so, symmetrize, wi, s
-# from BoManifolds.Riemannian_utils.so_utils import random_so_matrix
 
 if torch.cuda.is_available():
     device = torch.cuda.current_device()
@@ -104,9 +109,9 @@ class SORiemannianGaussianKernel(gpytorch.kernels.Kernel):
             if len(kernel_summands) >= summands_number_bound:
                 break
         kernel = sigma_squared / total_norm_squared * sum(kernel_summands)
-        # print('kernel = {}'.format(kernel))
-        # print('num. reps = {}'.format(len(kernel_summands)))
-        # print('total sq. norm = {}'.format(total_norm_squared.evalf()))
+        print('kernel = {}'.format(kernel))
+        print('num. reps = {}'.format(len(kernel_summands)))
+        print('total sq. norm = {}'.format(total_norm_squared.evalf()))
 
         # Save the serie
         array2mat = [{'ImmutableDenseMatrix': torch.tensor}, 'torch']
@@ -276,9 +281,9 @@ class SORiemannianMaternKernel(gpytorch.kernels.Kernel):
             if len(kernel_summands) >= summands_number_bound:
                 break
         kernel = sigma_squared / total_norm_squared * sum(kernel_summands)
-        # print('kernel = {}'.format(kernel))
-        # print('num. reps = {}'.format(len(kernel_summands)))
-        # print('total sq. norm = {}'.format(total_norm_squared.evalf()))
+        print('kernel = {}'.format(kernel))
+        print('num. reps = {}'.format(len(kernel_summands)))
+        print('total sq. norm = {}'.format(total_norm_squared.evalf()))
 
         # Save the serie
         array2mat = [{'ImmutableDenseMatrix': torch.tensor}, 'torch']
@@ -319,7 +324,7 @@ class SORiemannianMaternKernel(gpytorch.kernels.Kernel):
             matrix_ratio = torch.bmm(x1.view(-1, self.dim, self.dim), x2.view(-1, self.dim, self.dim).transpose(-1, -2))
             imaginary_part = torch.arccos(torch.clip((matrix_ratio.diagonal(dim1=-1, dim2=-2).sum(-1)-1.)/2., -1.+1e-8, 1.-1e-8))
             exph = torch.exp(torch.complex(torch.zeros_like(imaginary_part), imaginary_part))
-            kernel = self.series_approx(exph, self.lengthscale).real
+            kernel = self.series_approx(exph, self.lengthscale, self.nu).real
 
         else:
             eigenv = torch.linalg.eigvals(torch.bmm(x1.view(-1, self.dim, self.dim),
@@ -341,7 +346,7 @@ class SORiemannianMaternKernel(gpytorch.kernels.Kernel):
                 kernel[k] = self.series_approx(*exph, self.lengthscale, self.nu).real
 
         # Compute normalizing term
-        eigenv_norm = torch.ones(self.dim, dtype=eigenv.dtype).to(device)
+        eigenv_norm = torch.ones(self.dim, dtype=x1.dtype).to(device)
         eigenv_norm_list = list(eigenv_norm)
         exph = []
         while eigenv_norm_list:
@@ -352,7 +357,7 @@ class SORiemannianMaternKernel(gpytorch.kernels.Kernel):
                     exph.append(ev[None])
                     del eigenv_norm_list[i]
                     break
-        norm_factor = self.series_approx(*exph, self.lengthscale, self.nu).real
+        norm_factor = self.series_approx(*exph, self.lengthscale, self.nu) #.real
 
         return kernel.view(kernel_shape) / norm_factor
 

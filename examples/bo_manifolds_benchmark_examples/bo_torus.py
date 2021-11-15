@@ -1,7 +1,4 @@
-import sys
 import os
-import types
-import traceback
 from argparse import ArgumentParser
 
 import numpy as np
@@ -14,17 +11,16 @@ import botorch
 import botorch.acquisition
 
 import pymanopt.manifolds as manifolds
-
 import BoManifolds.pymanopt_addons.manifolds as additional_manifolds
-import BoManifolds.kernel_utils.kernels_hyperbolic as kernel_hyperbolic
+
+import BoManifolds.kernel_utils.kernels_torus as kernel_torus
 from BoManifolds.manifold_optimization.manifold_optimize import joint_optimize_manifold
 from BoManifolds.euclidean_optimization.euclidean_constrained_optimize import joint_optimize
-from BoManifolds.manifold_optimization.robust_conjugate_gradient import ConjugateGradientRobust
 from BoManifolds.manifold_optimization.robust_trust_regions import TrustRegions
-from BoManifolds.manifold_optimization.constrained_trust_regions import ConstrainedTrustRegions, \
-    StrictConstrainedTrustRegions
+from BoManifolds.manifold_optimization.constrained_trust_regions import StrictConstrainedTrustRegions
 import BoManifolds.test_functions_bo.test_functions_manifolds as test_functions_manifolds
 
+dirname = os.path.dirname(os.path.realpath(__file__))
 
 if torch.cuda.is_available():
     device = torch.cuda.current_device()
@@ -34,8 +30,62 @@ else:
 
 torch.set_default_dtype(torch.float32)
 
-dirname = os.path.dirname(os.path.realpath(__file__))
+'''
+This example shows the use of Bayesian optimization on the torus to optimize a benchmark function. 
 
+The type of BO can be chosen by the user via the --bo argument: The Geometry-aware Bayesian optimization (GaBO) takes
+ the manifold geometry into account through the kernel definition and acquisition function optimization (see [1], [3]),
+ while the classical Euclidean BO (EuBO) ignores the manifold geometry and uses classical kernels with constrained 
+ optimization of acquisition functions.
+
+The dimension of the manifold can be modified using the --dimension argument. Note that the dimension d corresponds to 
+ the dimension of the torus T^d = S^1 x ... x S^1.
+
+The kernel function can be chosen by the user via the --kernel argument:
+ The following kernels are available for GaBO (seen as product of kernels on the circle): 
+  - TorusProductOfManifoldsRiemannianGaussianKernel [2]
+  - TorusProductOfManifoldsRiemannianMaternKernel [2], [3]
+ The following kernels are available for EuBO (from GPyTorch):
+  - RBFKernel
+  - MaternKernel
+ Additional priors on the kernel parameters can be introduced as arguments.
+
+The acquisition function (Expected improvement) is optimized on the manifold with trust regions on Riemannian manifolds, 
+ originally implemented in pymanopt. A robust version is used here to avoid crashing if NaNs or zero values occur during 
+ the optimization.
+
+The benchmark function can be chosen among various options, see --benchmark argument options at the end of this file, or 
+ the test_function_bo/test_function_manifolds.py file (default: Ackley). 
+ The benchmark function, defined on the tangent space of the north pole of each circle composing the torus, is projected
+ on the sphere with the exponential map (i.e. the logarithm map is used to determine the function value). 
+
+The number of BO iterations is set by the user via the --nb_iter_bo argument. 
+The initial points for the BO can be modified by changing the seed number (--seed argument).
+
+The current optimum value of the function is printed at each BO iteration and the optimal estimate of the optimizer 
+(on the torus) is printed at the end of the queries. 
+The following graphs are produced by this example:
+- the convergence graph shows the distance between two consecutive iterations and the best function value found by the
+    BO at each iteration. Note that the randomly generated initial data are displayed.
+
+References:
+[1] N. Jaquier, L. Rozo, S. Calinon, and M. Bürger. 
+Bayesian Optimization meets Riemannian Manifolds in Robot Learning. 
+In Conference on Robot Learning, pages 233–246, 2019. 
+
+[2] V. Borovitskiy, A. Terenin, P. Mostowsky, and M. Deisenroth. 
+Matérn Gaussian Processes on Riemannian Manifolds. 
+In Advances in Neural Information Processing Systems, pages 12426–12437, 2020.
+
+[3] N. Jaquier, V. Borovitskiy, A. Smolensky, A. Terenin, T. Asfour, and L. Rozo. 
+Bayesian Optimization meets Riemannian Manifolds in Robot Learning. 
+In Conference on Robot Learning, 2021. 
+
+This file is part of the MaternGaBO library.
+Authors: Noemie Jaquier, Viacheslav Borovitskiy, Andrei Smolensky, Alexander Terenin, Tamim Asfour, Leonel Rozo, 2021
+License: MIT
+Contact: noemie.jaquier@kit.edu
+'''
 
 def get_bo_attributes(manifold_name, kernel_name, acquisition_name, test_function_name):
     if hasattr(manifolds, manifold_name):
@@ -47,8 +97,8 @@ def get_bo_attributes(manifold_name, kernel_name, acquisition_name, test_functio
 
     if hasattr(gpytorch.kernels, kernel_name):
         kernel = getattr(gpytorch.kernels, kernel_name)
-    elif hasattr(kernel_hyperbolic, kernel_name):
-        kernel = getattr(kernel_hyperbolic, kernel_name)
+    elif hasattr(kernel_torus, kernel_name):
+        kernel = getattr(kernel_torus, kernel_name)
     else:
         raise RuntimeError("No such kernel.")
 
@@ -60,36 +110,42 @@ def get_bo_attributes(manifold_name, kernel_name, acquisition_name, test_functio
 
 
 def get_bounds(dimension):
-    bounds = torch.stack([- 10. * torch.ones(dimension + 1, dtype=torch.float64),
-                          10. * torch.ones(dimension + 1, dtype=torch.float64)])
+    bounds = torch.stack([-torch.ones(2 * dimension, dtype=torch.float64),
+                          torch.ones(2 * dimension, dtype=torch.float64)])
+
     return bounds
 
 
-def get_constraints(bo_type):
+def get_constraints(bo_type, manifold):
     if bo_type == "GaBO":
         return None
 
     else:
-        # Define constraints to be on the hyperbolic manifold
-        def minkowski_norm_constraint(x):
-            return np.sum(x[1:] ** 2) - x[0] ** 2 + 1.
+        constraints = []
+        for i in range(manifold.dim):
+            # Norm-1 constraints
+            def norm1constraint(x):
+                return np.linalg.norm(x[2 * i:2 * i + 2]) - 1.
 
-        return [{'type': 'eq', 'fun': minkowski_norm_constraint}]
+            constraints.append({'type': 'eq', 'fun': norm1constraint})
+        return constraints
 
 
-def get_preprocessing():
+def get_preprocessing(bo_type):
     return None
 
 
-def get_postprocessing(bo_type):
+def get_postprocessing(bo_type, manifold):
     if bo_type == "GaBO":
         return None
 
     else:
-        # Define sampling post processing function
         def post_processing_init(x):
-            x0 = torch.sqrt(1. + torch.norm(x[..., 1:], dim=[-1]) ** 2)
-            x[..., 0] = x0
+            for i in range(manifold.dim):
+                x[..., 2 * i:2 * i + 2] = x[..., 2 * i:2 * i + 2] \
+                                          / torch.cat(x[..., 2 * i:2 * i + 2].shape[-1] *
+                                                      [torch.norm(x[..., 2 * i:2 * i + 2], dim=[-1]).unsqueeze(-1)],
+                                                      dim=-1)
             return x
 
         return post_processing_init
@@ -120,6 +176,7 @@ def main(manifold_name, dimension, kernel_name, acquisition_name, bo_type, test_
 
     # Execution of BO for one seed
     print('Seed ' + str(seed_id))
+    # try:
 
     # Instantiate the manifold
     manifold = manifold_type(dimension)
@@ -133,11 +190,11 @@ def main(manifold_name, dimension, kernel_name, acquisition_name, bo_type, test_
     bounds = get_bounds(dimension)
 
     # Define the pre/post-processing functions in function of the BO type and of the manifold
-    preprocessing_fct = get_preprocessing()
-    postprocessing_fct = get_postprocessing(bo_type)
+    preprocessing_fct = get_preprocessing(bo_type)  # None for the torus
+    postprocessing_fct = get_postprocessing(bo_type, manifold)  # Ensure data on the torus for EuBO initializations
 
     # Generate random data on the manifold
-    x_init = np.array([manifold.rand() for n in range(nb_data_init)])
+    x_init = np.array([np.array(manifold.rand()).reshape(2 * dimension) for n in range(nb_data_init)])
     x_data = torch.tensor(x_init)
 
     # Function value for initial data
@@ -150,9 +207,8 @@ def main(manifold_name, dimension, kernel_name, acquisition_name, bo_type, test_
         nu_prior = gpytorch.priors.torch_priors.GammaPrior(2.0, 0.1)
     else:
         nu_prior = gpytorch.priors.torch_priors.GammaPrior(nu_prior_params[0], nu_prior_params[1])
-
     if lengthscale_prior_params is None:
-        lengthscale_prior = gpytorch.priors.torch_priors.GammaPrior(3.0, 6.0)
+        lengthscale_prior = None
     else:
         lengthscale_prior = gpytorch.priors.torch_priors.UniformPrior(lengthscale_prior_params[0],
                                                                       lengthscale_prior_params[1]),
@@ -189,9 +245,7 @@ def main(manifold_name, dimension, kernel_name, acquisition_name, bo_type, test_
         # Define the solver on the manifold
         if constraints is None:
             solver = TrustRegions(maxiter=200)
-            # solver = ConjugateGradientRobust()
         else:
-            # solver = ConstrainedTrustRegions(mingradnorm=1e-4, maxiter=100)
             solver = StrictConstrainedTrustRegions(mingradnorm=1e-3, maxiter=50)
 
     num_restarts = 5
@@ -254,7 +308,7 @@ def main(manifold_name, dimension, kernel_name, acquisition_name, bo_type, test_
     neval = x_eval.shape[0]
     distances = np.zeros(neval - 1)
     for n in range(neval - 1):
-        distances[n] = np.linalg.norm(x_eval[n + 1, :] - x_eval[n, :])
+        distances[n] = manifold.dist(x_eval[n + 1, :], x_eval[n, :])
 
     Y_best = np.ones(neval)
     for i in range(neval):
@@ -289,19 +343,20 @@ if __name__ == "__main__":
     parser.add_argument("--benchmark", dest="benchmark_function", default="Ackley",
                         help="Set the benchmark function. Options: Ackley, Rosenbrock, StyblinskiTang, Levy, "
                              "ProductOfSines, ...")
-    parser.add_argument("--kernel", dest="kernel", default="HyperbolicRiemannianMillsonGaussianKernel",
+    parser.add_argument("--kernel", dest="kernel", default="TorusProductOfManifoldsRiemannianGaussianKernel",
                         help="Set the kernel. Options: RBFKernel, MaternKernel "
-                             "HyperbolicRiemannianMillsonGaussianKernel, "
-                             "HyperbolicRiemannianMillsonIntegratedMaternKernel")
+                             "TorusProductOfManifoldsRiemannianGaussianKernel, "
+                             "TorusProductOfManifoldsRiemannianMaternKernel")
     parser.add_argument("--acquisition", dest="acquisition", default="ExpectedImprovement",
                         help="Set the acquisition function. Options: ExpectedImprovement, ProbabilityOfImprovement, "
                              "UpperConfidenceBound, IntegratedExpectedImprovement, ...")
     parser.add_argument("--seed", dest="seed", type=int, default=0,
                         help="Set the seed ID")
-    parser.add_argument("--nb_iter_bo", dest="nb_iter_bo", type=int, default=10,
+    parser.add_argument("--nb_iter_bo", dest="nb_iter_bo", type=int, default=25,
                         help="Set the number of BO iterations")
     parser.add_argument('--nu', dest="nu", type=float, default=2.5,
-                        help="Kernel smoothness parameter, default None.")
+                        help="Kernel smoothness parameter, default 2.5 (nu is optimize if given as None for integrated "
+                             "Matérn kernels).")
     parser.add_argument('--nu_prior_params', dest="nu_prior_params", nargs='+', default=None,
                         help="Kernel smoothness gamma prior function's parameters (2 values), default None.")
     parser.add_argument('--lengthscale_prior_params', dest="lengthscale_prior_params", nargs='+', default=None,
@@ -313,7 +368,7 @@ if __name__ == "__main__":
     bo_type = args.bo
 
     # Manifold
-    manifold_name = "HyperbolicLorentz"
+    manifold_name = "Torus"
 
     # dimension
     dimension = args.dimension

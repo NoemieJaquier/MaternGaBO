@@ -1,3 +1,10 @@
+"""
+This file is part of the MaternGaBO library.
+Authors: Noemie Jaquier and Leonel Rozo, 2021
+License: MIT
+Contact: noemie.jaquier@kit.edu, leonel.rozo@de.bosch.com
+"""
+
 import numpy as np
 import torch
 
@@ -80,7 +87,7 @@ def affine_invariant_distance_torch(x1, x2, diagonal_distance=False):
     # x1_inv = torch.inverse(x1)  # method 1: uses inv(x1)x2
 
     # Method 2: uses the Cholesky decomposition to compute x1^(-0.5)
-    x1_chol = torch.cholesky(x1)
+    x1_chol = torch.linalg.cholesky(x1)
     x1_chol_inv = torch.inverse(x1_chol)
 
     # Repeat x and y data along 1- and 0- dimensions to have ndata_x x ndata_y x dim x dim arrays
