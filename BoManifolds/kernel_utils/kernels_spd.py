@@ -86,9 +86,9 @@ class SpdRiemannianGaussianKernel(gpytorch.kernels.Kernel):
         -------
         :return: kernel matrix between x1 and x2
         """
-        # Transform input vector to matrix
-        x1 = vector_to_symmetric_matrix_mandel_torch(x1)
-        x2 = vector_to_symmetric_matrix_mandel_torch(x2)
+        # Transform input vector to matrix anc compute Cholesky decomposition
+        x1 = torch.cholesky(vector_to_symmetric_matrix_mandel_torch(x1))
+        x2 = torch.cholesky(vector_to_symmetric_matrix_mandel_torch(x2))
 
         # Expand dimensions to compute all matrix-matrix distances
         x1 = x1.unsqueeze(-3)
