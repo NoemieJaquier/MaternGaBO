@@ -400,9 +400,9 @@ def compute_riemannian_matern_kernel_constant(n, d):
     """
     dn = (2*n+d-1) * math.gamma(n+d-1) / math.gamma(d) / math.gamma(n+1)
     # Compute Gegenbauer polynomial
-    gpolynomial = gegenbauer_polynomial(n, (d+1.)/2., torch.ones(1))
+    gpolynomial = gegenbauer_polynomial(n, (d-1.)/2., torch.ones(1))
     # Constant value
-    cnd = dn * math.gamma((d+1.)/2.) / (2*math.pow(math.pi, (d+1.)/2.) * gpolynomial)
+    cnd = dn * math.gamma((d-1.)/2.) / (2*math.pow(math.pi, (d-1.)/2.) * gpolynomial)
     return cnd
 
 
